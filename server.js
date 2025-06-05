@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: '*',  // More permissive for development
   credentials: true
 }));
 
@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check route
 app.get('/api/health', (req, res) => {
+  console.log('Health check requested');
   res.json({ 
     message: 'T-Shirt Store Backend is running!',
     environment: process.env.NODE_ENV,
@@ -47,7 +48,10 @@ const products = [
 
 // Get all products
 app.get('/api/products', (req, res) => {
-  res.json({ products });
+  console.log('Products requested');
+  const responseData = { products };
+  console.log('Sending products data:', JSON.stringify(responseData, null, 2));
+  res.json(responseData);
 });
 
 // Get single product by ID
