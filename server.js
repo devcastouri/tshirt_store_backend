@@ -10,7 +10,7 @@ const isDevelopment = process.env.NODE_ENV === 'development';
 app.use(cors({
   origin: isDevelopment 
     ? 'http://localhost:3000'  // Development
-    : process.env.FRONTEND_URL, // Production - should be set in environment variables
+    : ['https://*.vercel.app', process.env.FRONTEND_URL].filter(Boolean), // Production - allow Vercel domains
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
