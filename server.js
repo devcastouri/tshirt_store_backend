@@ -1,32 +1,46 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const productRoutes = require('./routes/productRoutes');
+const authRoutes = require('./routes/authRoutes');
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+
+// CORS configuration
+const corsOrigins = configService.get<string>('CORS_ORIGIN')?.split(',') || ['http://localhost:3000'];
+
+app.enableCors({
+  origin: corsOrigins,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  credentials: true,
+});
 
 // Middleware
-const isDevelopment = process.env.NODE_ENV === 'development';
-app.use(cors({
-  origin: isDevelopment 
-    ? 'http://localhost:3000'  // Development
-    : ['https://*.vercel.app', process.env.FRONTEND_URL].filter(Boolean), // Production - allow Vercel domains
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing Supabase configuration');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Make Supabase client available to routes
+app.locals.supabase = supabase;
+
+// Routes
+app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+
 // Health check route
 app.get('/api/health', (req, res) => {
-  console.log('Health check requested');
-  res.json({ 
-    message: 'T-Shirt Store Backend is running!',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: 'ok' });
 });
 
 // Products routes
@@ -102,10 +116,9 @@ app.post('/api/orders', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(500).json({ 
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal server error'
   });
 });
 
@@ -118,8 +131,7 @@ app.use((req, res) => {
 });
 
 // Start server
+const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`CORS Origin: ${process.env.CORS_ORIGIN}`);
 });
